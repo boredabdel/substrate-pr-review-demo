@@ -52,3 +52,22 @@ func main() {
 	fmt.Println("Order service listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+
+// ApplyDiscount applies a percentage discount to an existing order.
+func (s *OrderStore) handleApplyDiscount(w http.ResponseWriter, r *http.Request) {
+	orderID := r.URL.Query().Get("id")
+	var req struct {
+		DiscountPercent float64 `json:"discountPercent"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	// Intentional bugs for Antigravity-CLI review:
+	// 1. Accessing s.orders map without acquiring s.mu lock (data race!)
+	// 2. No validation on DiscountPercent (allows >100% or negative discounts)
+	order := s.orders[orderID]
+	order.Amount = order.Amount * (1 - req.DiscountPercent/100)
+	s.orders[orderID] = order
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(order)
+}
