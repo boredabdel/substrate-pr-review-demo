@@ -1,0 +1,27 @@
+name: Antigravity-CLI PR Review (Agent-Substrate GKE)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  antigravity-review:
+    name: Antigravity-CLI Review (Substrate Actor)
+    runs-on: [self-hosted, agent-substrate]
+    steps:
+      - name: Checkout Pull Request
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Antigravity-CLI AI Code Review (Vertex AI Gemini)
+        run: |
+          antigravity-cli review \
+            --repo "${{ github.repository }}" \
+            --pr "${{ github.event.pull_request.number }}" \
+            --sha "${{ github.event.pull_request.head.sha }}"
+
+      - name: Auto-Suspend Substrate Actor back to GCS
+        if: always()
+        run: |
+          antigravity-cli suspend-after-job
